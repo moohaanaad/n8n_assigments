@@ -1,0 +1,363 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -576,
+        -32
+      ],
+      "id": "2d1a64a9-c7c0-476f-a46d-28cecc2f5fa6",
+      "name": "Telegram Trigger",
+      "webhookId": "0c35ce77-9f8c-441b-8da3-8d8b21915bb8",
+      "credentials": {
+        "telegramApi": {
+          "id": "48oke4PJJjVIvyWD",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        -16
+      ],
+      "id": "ac153dbc-10ca-4b75-87d5-53c468cd2717",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "18b71c4d-c2b6-4af8-a332-759e6fc896e8",
+              "leftValue": "={{ $json.message.document.mime_type }}",
+              "rightValue": "=application/pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -320,
+        -32
+      ],
+      "id": "e7ff99eb-8f0c-4d84-87ea-3ffda2a276d7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "message": "should upload PDF file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        176
+      ],
+      "id": "a62a41c0-3591-4ca9-be93-4dead9f356a5",
+      "name": "Send message and wait for response",
+      "webhookId": "a4b1b243-8263-4fd3-8f4e-c20e9f62b893",
+      "credentials": {
+        "telegramApi": {
+          "id": "48oke4PJJjVIvyWD",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.document.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -144,
+        -176
+      ],
+      "id": "a6e36294-de19-4a5b-929c-f05399657d65",
+      "name": "Get a file",
+      "webhookId": "8824c76b-8fc2-4adb-ac41-a9e3baecbafe",
+      "credentials": {
+        "telegramApi": {
+          "id": "48oke4PJJjVIvyWD",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert PDF Document Extraction, OCR, and Student Performance Analysis Assistant.\n\nYour task is to process uploaded student performance PDF files and extract all available information accurately, regardless of their format, page count, or document structure.\n\nThe PDFs may contain:\n- Student Performance Reports.\n- Official Certificates.\n- Examination Notices.\n- Course Transcripts.\n- Module-wise Performance Breakdowns.\n- Final Examination Results.\n\nIMPORTANT: Different students may have different PDF layouts. Do not assume that every PDF contains a certificate or an explicit completion status.\n\n## 1. COMPLETE PDF EXTRACTION\n\n- Process EVERY page of the uploaded PDF.\n- Extract all available text, including text inside tables.\n- Support multi-page documents.\n- Preserve complete module names, even when they are long.\n- Extract all grades, weights, percentages, scores, and student\nCRITICAL OUTPUT REQUIREMENTS:\n\n- Return ONLY a valid JSON object.\n- Do not include Markdown.\n- Do not use ```json or ``` code fences.\n- Do not include headings.\n- Do not include introductions or explanations.\n- Do not include emojis.\n- The first character of your response MUST be {\n- The last character of your response MUST be }.\n- Ensure all JSON strings use double quotes.\n- Never add trailing commas.\n- Validate the JSON structure before responding."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "eb3ff9cb-54e5-4853-892f-e8fc1146f8d8",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        192
+      ],
+      "id": "f648b552-2a86-4d7b-9dfc-e874de5177e1",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "MhtR0AA7LIbif9q5",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the text from the previous node\nconst rawText = $input.first().json.text\n\n// Convert string to JSON\nconst parsedData = JSON.parse(rawText);\n\n// Return the parsed JSON\nreturn {\n  json: parsedData\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -16
+      ],
+      "id": "9dbbe6ec-62ff-44ec-b503-b02569bb4e2d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "4d534d43-e075-45c5-a738-59d84c20108e",
+              "leftValue": "={{ $json.certificate.status }}",
+              "rightValue": "passed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        736,
+        -16
+      ],
+      "id": "cb69bbc1-5754-4f25-bb62-fa4570be421f",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "sendTo": "mohanadahmed266@gmail.com",
+        "subject": "GLOBAL AUTOMATION ACADEMY",
+        "message": "=Dear Student,{{ $json.student_name }}\n{{ $json.student_id }}\nCongratulations on your excellent achievement!\ncourse: {{ $json.certificate.title }} from: {{ $json.certificate.institution }}\nWe are pleased to inform you that you have successfully completed your examination. Here are your results:\n\n- **Module:** {{ $json.modules[0].name }}: {{ $json.modules[0].grade }}\n- **Module:** {{ $json.modules[1].name }}: {{ $json.modules[1].grade }}\n- **Module:** {{ $json.modules[2].name }}: {{ $json.modules[2].grade }}\n\n- **Result:** Passed\n\nYour hard work and dedication have paid off!\n\nPlease find your **Certificate of Achievement attached** to this email as recognition of your success.\n\nWe wish you continued success in your academic and professional journey.\n\nBest regards,  \nAcademic Affairs Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -112
+      ],
+      "id": "c0e0e2fc-c325-47a8-b491-f7c5434fefa0",
+      "name": "Send a message",
+      "webhookId": "68b5a34a-40c0-450a-8230-ea84ddcee9c9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AdGt1CrW063FaHL6",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mohanadahmed266@gmail.com",
+        "subject": "GLOBAL AUTOMATION ACADEMY",
+        "message": "=Dear Student,{{ $('Code in JavaScript').item.json.student_name }}\n{{ $('Code in JavaScript').item.json.student_id }}\nI hope you are doing well.\n\nYour latest exam results are as follows:\n\n- **module:** {{ $json.modules[0].module_name }}: {{ $('Code in JavaScript').item.json.modules[0].grade }}\n- **module:** {{ $json.modules[1].module_name }}: {{ $('Code in JavaScript').item.json.modules[1].grade }}\n- **module:** {{ $json.modules[2].module_name }}: {{ $('Code in JavaScript').item.json.modules[2].grade }}\n\n- **Status:** failed\n\nYou are required to take a retake exam to improve your academic performance.\n\nPlease don't worry. Academic support is available to help you prepare, including study materials, guidance, and additional assistance from your instructors.\n\nIf you have any questions, please feel free to contact the academic support team.\n\nBest regards,  \nAcademic Affairs Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        96
+      ],
+      "id": "6a95c15a-75e4-47c0-9aca-f61de32c6998",
+      "name": "Send a message1",
+      "webhookId": "68b5a34a-40c0-450a-8230-ea84ddcee9c9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AdGt1CrW063FaHL6",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6186ca931969d2d1149410573f0972256daafb568363f8ee68991ab8866faf20"
+  }
+}
